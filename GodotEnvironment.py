@@ -144,15 +144,10 @@ class GodotEnvironment:
         self.is_godot_launched = False
 
     # Connection functions =============================================================================================
+    # ===== sockets        =========================================================================================
 
     def _initialize_socket(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    def _end_connection(self):
-        """Closes the socket, and then reset it. Also reset client socket."""
-        self.socket.close()
-        self.socket = None
-        self.client_socket = None
 
     def _wait_for_connection(self):
         """
@@ -165,6 +160,41 @@ class GodotEnvironment:
         self.client_socket, addr = self.socket.accept()
         if self.verbose:
             print('Connected by', addr)
+
+    def _end_connection(self):
+        """Closes the socket, and then reset it. Also reset client socket."""
+        self.socket.close()
+        self.socket = None
+        self.client_socket = None
+    
+    # ===== post/pre-sockets =======================================================================
+
+    def _wait_and_receive_states_data(self):
+        """
+        wait until it receives environment data from Godot simulation
+        :return: list of dictionaries
+        """
+        states_data = None
+        is_data_received = False
+        # stay in the loop until data is received
+        while is_data_received != True:
+            states_data = self.client_socket.recv(10000)
+            states_data = states_data.decode()
+            # checking if the length of the data is enough to be considered valid
+            if len(states_data) > 4:
+                is_data_received = True
+        return states_data
+
+    def _get_environment_state(self):
+        """
+        wait and receive states data and format it to the correct shape
+        :return: list of dictionaries
+        """
+        states_data = self._wait_and_receive_states_data()
+        states_data = self._format_states_data(states_data)
+        return states_data
+
+    # data formatting =================================================================
 
     def _create_request(self, initialization=False, termination=False, agents_data=None):
         """
@@ -198,22 +228,6 @@ class GodotEnvironment:
                 agents_data[n_agent]["action"] = int(agents_data[n_agent]["action"])
         return agents_data
 
-    def _wait_and_receive_states_data(self):
-        """
-        wait until it receives environment data from Godot simulation
-        :return: list of dictionaries
-        """
-        states_data = None
-        condition = False
-        # stay in the loop until data is received
-        while condition != True:
-            states_data = self.client_socket.recv(10000)
-            states_data = states_data.decode()
-            # checking if the length of the data is enough to be considered valid
-            if len(states_data) > 4:
-                condition = True
-        return states_data
-
     def _format_states_data(self, state_data):
         """
         returns formatted states data
@@ -225,46 +239,6 @@ class GodotEnvironment:
             if isinstance(agent_data['state'], str):
                 state_data["agents_data"][n_agent]["state"] = ast.literal_eval(agent_data["state"])
         return state_data
-
-    def _get_environment_state(self):
-        """
-        wait and receive states data and format it to the correct shape
-        :return: list of dictionaries
-        """
-        states_data = self._wait_and_receive_states_data()
-        states_data = self._format_states_data(states_data)
-        return states_data
-
-
-
-
-
-    def _change_render_type_if_needed(self, render):
-        """
-        Handling the case where we changed te rendering type and the godot engine is launched (not the first time the
-        class is used). We want to close the godot session and create a new one with a different rendering parameter.
-        :param render: bool
-        :return:
-        """
-        if (render != self.is_rendering) and self.is_godot_launched:
-            if self.socket is None:
-                self._initialize_socket()
-            self._wait_for_connection()
-
-            self.close()
-        self.is_rendering = render
-
-    def _launch_simulation_if_needed(self):
-        if not self.is_godot_launched:
-            self.godot_path_str = utils.get_path(self.godot_path_str, add_absolute=True)
-            self.env_path_str = utils.get_path(self.env_path_str) 
-            print(self.env_path_str)
-            print(self.godot_path_str)
-            command = "{} --main-pack {}".format(self.godot_path_str, self.env_path_str)
-            if not self.is_rendering:
-                command = command + " --disable-render-loop --no-window"
-            self.godot_process = subprocess.Popen(command, shell=True)
-            self.is_godot_launched = True
 
     def _split_env_data(self, agents_data):
         """
@@ -281,6 +255,39 @@ class GodotEnvironment:
             reward_data = {"name": agent_data["name"], "reward": agent_data["reward"]}
             rewards_data.append(reward_data)
         return states_data, rewards_data
+
+    # simulation functions ==================================================================================================
+
+    def _launch_simulation_if_needed(self):
+        """If the simulation is not already running, run it with the local godot executable
+        """
+        if not self.is_godot_launched:
+            self.godot_path_str = utils.get_path(self.godot_path_str, add_absolute=True)
+            self.env_path_str = utils.get_path(self.env_path_str) 
+            print(f"environment path: {self.env_path_str}")
+            print(f"godot path: {self.godot_path_str}")
+            command = "{} --main-pack {}".format(self.godot_path_str, self.env_path_str)
+            if not self.is_rendering:
+                command = command + " --disable-render-loop --no-window"
+            self.godot_process = subprocess.Popen(command, shell=True)
+            self.is_godot_launched = True
+
+    def _change_render_type_if_needed(self, render):
+        """
+        Handling the case where we changed te rendering type and the godot engine is launched (not the first time the
+        class is used). We want to close the godot session and create a new one with a different rendering parameter.
+        :param render: bool
+        :return:
+        """
+        if (render != self.is_rendering) and self.is_godot_launched:
+            if self.socket is None:
+                self._initialize_socket()
+            self._wait_for_connection()
+
+            self.close()
+        self.is_rendering = render
+
+    # other ===========================================================================================
 
     def scale_states_data(self, states_data):
         """
