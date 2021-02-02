@@ -4,7 +4,7 @@ import numpy as np
 import os
 import subprocess
 import ast
-import utils
+from .utils import get_path
 
 
 class GodotEnvironment:
@@ -53,7 +53,7 @@ class GodotEnvironment:
     def set_other_params(self):
         self.random_generator = np.random.RandomState(seed=self.seed)
 
-    # main functions ===================================================================================================
+    # main functions ===================================================
 
     def reset(self, render):
         """
@@ -143,8 +143,8 @@ class GodotEnvironment:
         self.godot_process.wait()
         self.is_godot_launched = False
 
-    # Connection functions =============================================================================================
-    # ===== sockets        =========================================================================================
+    # Connection functions =============================================
+    # ===== sockets        =============================================
 
     def _initialize_socket(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -167,7 +167,7 @@ class GodotEnvironment:
         self.socket = None
         self.client_socket = None
     
-    # ===== post/pre-sockets =======================================================================
+    # ===== post/pre-sockets ===========================================
 
     def _wait_and_receive_states_data(self):
         """
@@ -194,7 +194,7 @@ class GodotEnvironment:
         states_data = self._format_states_data(states_data)
         return states_data
 
-    # data formatting =================================================================
+    # data formatting ==================================================
 
     def _create_request(self, initialization=False, termination=False, agents_data=None):
         """
@@ -256,14 +256,14 @@ class GodotEnvironment:
             rewards_data.append(reward_data)
         return states_data, rewards_data
 
-    # simulation functions ==================================================================================================
+    # simulation functions =============================================
 
     def _launch_simulation_if_needed(self):
         """If the simulation is not already running, run it with the local godot executable
         """
         if not self.is_godot_launched:
-            self.godot_path_str = utils.get_path(self.godot_path_str, add_absolute=True)
-            self.env_path_str = utils.get_path(self.env_path_str) 
+            self.godot_path_str = get_path(self.godot_path_str, add_absolute=True)
+            self.env_path_str = get_path(self.env_path_str) 
             print(f"environment path: {self.env_path_str}")
             print(f"godot path: {self.godot_path_str}")
             command = "{} --main-pack {}".format(self.godot_path_str, self.env_path_str)
@@ -287,7 +287,7 @@ class GodotEnvironment:
             self.close()
         self.is_rendering = render
 
-    # other ===========================================================================================
+    # other ============================================================
 
     def scale_states_data(self, states_data):
         """
