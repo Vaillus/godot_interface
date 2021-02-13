@@ -88,7 +88,7 @@ class GodotEnvironment:
         env_data = self._get_environment_state()
         if self.display_states:
             print(env_data)
-        states_data = env_data["agents_data"]
+        states_data = env_data["states_data"]
         #states_data = self.scale_states_data(states_data)
 
         return states_data
@@ -101,7 +101,7 @@ class GodotEnvironment:
         :return:states_data (dic), rewards_data (dic), done (boolean), n_frames (int)
         """
         # prepare and send data to simulation
-        request = self._create_request(agents_data=actions_data)
+        request = self._create_request(actions_data=actions_data)
         if self.display_actions:
             print(request)
         self.client_socket.sendall(request)
@@ -112,8 +112,8 @@ class GodotEnvironment:
             print(env_data)
 
         # splitting data
-        states_data, rewards_data = self._split_env_data(env_data["agents_data"])
-
+        states_data, rewards_data = self._split_env_data(env_data["states_data"])
+        print(rewards_data)
         n_frames = env_data["n_frames"]
         # scaling reward
         for n_agent in range(len(rewards_data)):
@@ -144,7 +144,7 @@ class GodotEnvironment:
         self.is_godot_launched = False
 
     # Connection functions =============================================
-    # ===== sockets        =============================================
+    # ==== sockets         =============================================
 
     def _initialize_socket(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -196,12 +196,12 @@ class GodotEnvironment:
 
     # data formatting ==================================================
 
-    def _create_request(self, initialization=False, termination=False, agents_data=None):
+    def _create_request(self, initialization=False, termination=False, actions_data=None):
         """
         Handles the type of request to be sent and shape the request into the correct form.
         :param initialization: boolean, indicates if the request must be in the form of an initialization request.
         :param termination: boolean, indicates if the request must be in the form of an termination request.
-        :param agents_data: list of dictionaries contaning the fields "name" (string) and "action" (int) the value of
+        :param actions_data: list of dictionaries contaning the fields "name" (string) and "action" (int) the value of
         the action to be taken by the actor.
         :return: The request is a dictionary stored into a string, ready to be sent to the simulator
         """
@@ -212,21 +212,21 @@ class GodotEnvironment:
         request["termination"] = termination
         request["render"] = self.is_rendering
         if initialization == False and termination == False:
-            request["agents_data"] = self._format_actions_data(agents_data)
+            request["actions_data"] = self._format_actions_data(actions_data)
         request = json.dumps(request).encode()
         return request
 
-    def _format_actions_data(self, agents_data):
+    def _format_actions_data(self, actions_data):
         """
         formats agents data to the correct shape
-        :param agents_data: list of dictionaries
+        :param actions_data: list of dictionaries
         :return: list of dictionaries
         """
-        for n_agent in range(len(agents_data)):
+        for n_agent in range(len(actions_data)):
             # convert the actions to the correct type
-            if isinstance(agents_data[n_agent]["action"], np.integer):
-                agents_data[n_agent]["action"] = int(agents_data[n_agent]["action"])
-        return agents_data
+            if isinstance(actions_data[n_agent]["action"], np.integer):
+                actions_data[n_agent]["action"] = int(actions_data[n_agent]["action"])
+        return actions_data
 
     def _format_states_data(self, state_data):
         """
@@ -235,24 +235,24 @@ class GodotEnvironment:
         :return: list of dictionaries
         """
         state_data = json.loads(state_data)
-        for n_agent, agent_data in enumerate(state_data["agents_data"]):
+        for n_agent, agent_data in enumerate(state_data["states_data"]):
             if isinstance(agent_data['state'], str):
-                state_data["agents_data"][n_agent]["state"] = ast.literal_eval(agent_data["state"])
+                state_data["states_data"][n_agent]["state"] = ast.literal_eval(agent_data["state"])
         return state_data
 
-    def _split_env_data(self, agents_data):
+    def _split_env_data(self, env_data):
         """
         Split the data received by the environment in two lists. One containing rewards and the other containing the
         states
-        :param agents_data: list of directories
+        :param states_data: list of directories
         :return: two lists of directories
         """
         states_data = []
         rewards_data = []
-        for agent_data in agents_data:
-            state_data = {"name": agent_data["name"], "state": agent_data["state"]}
+        for env_datum in env_data:
+            state_data = {"name": env_datum["name"], "state": env_datum["state"]}
             states_data.append(state_data)
-            reward_data = {"name": agent_data["name"], "reward": agent_data["reward"]}
+            reward_data = {"name": env_datum["name"], "reward": env_datum["reward"]}
             rewards_data.append(reward_data)
         return states_data, rewards_data
 
