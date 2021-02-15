@@ -33,6 +33,8 @@ class GodotEnvironment:
         self.seed = None
         self.random_generator = None
 
+        self.max_rec_bits = None
+
         self.set_params_from_dict(params)
 
         self.set_other_params()
@@ -49,6 +51,8 @@ class GodotEnvironment:
         self.display_states = params.get("display states", False)
         self.verbose = params.get('verbose', False)
         self.seed = params.get('seed', np.random.randint(0, 1e5))
+        # 12.5 kB
+        self.max_rec_bits = params.get("max bits received", 1000000)
 
     def set_other_params(self):
         self.random_generator = np.random.RandomState(seed=self.seed)
@@ -182,7 +186,8 @@ class GodotEnvironment:
         is_data_received = False
         # stay in the loop until data is received
         while is_data_received != True:
-            states_data = self.client_socket.recv(10000)
+            # receive data, specifying what max length it can be in bits.
+            states_data = self.client_socket.recv(self.max_rec_bits)
             states_data = states_data.decode()
             # checking if the length of the data is enough to be considered valid
             if len(states_data) > 4:
