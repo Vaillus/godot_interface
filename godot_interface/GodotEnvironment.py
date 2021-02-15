@@ -53,6 +53,10 @@ class GodotEnvironment:
     def set_other_params(self):
         self.random_generator = np.random.RandomState(seed=self.seed)
 
+    def set_seed(self, seed):
+        self.seed = seed
+        self.random_generator = np.random.RandomState(seed=seed)
+
     # main functions ===================================================
 
     def reset(self, render):
@@ -207,6 +211,9 @@ class GodotEnvironment:
         """
         request = {}
         request["initialization"] = initialization
+        # we send a different seed each time so all episodes are not all
+        # the same. but the random seed generator was initialized with the
+        # instance's seed
         if initialization:
             request["seed"] = self.random_generator.randint(low=0, high=1e6)
         request["termination"] = termination
