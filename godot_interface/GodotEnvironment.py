@@ -4,8 +4,30 @@ import numpy as np
 import os
 import subprocess
 import ast
-from .utils import get_path
+from utils import get_path
 
+import struct
+
+
+def recv_msg(sock):
+    # Read message length and unpack it into an integer
+    raw_msglen = recvall(sock, 4)
+    if not raw_msglen:
+        return None
+        
+    msglen = struct.unpack('>I', raw_msglen)[0]
+    # Read the message data
+    return recvall(sock, msglen)
+
+def recvall(sock, n):
+    # Helper function to recv n bytes or return None if EOF is hit
+    data = bytearray()
+    while len(data) < n:
+        packet = sock.recv(n - len(data))
+        if not packet:
+            return None
+        data.extend(packet)
+    return data
 
 class GodotEnvironment:
     def __init__(self, params={}):
@@ -35,6 +57,8 @@ class GodotEnvironment:
 
         self.max_rec_bits = None
 
+        self.metrics = {}
+
         self.set_params_from_dict(params)
 
         self.set_other_params()
@@ -52,10 +76,11 @@ class GodotEnvironment:
         self.verbose = params.get('verbose', False)
         self.seed = params.get('seed', np.random.randint(0, 1e5))
         # 12.5 kB
-        self.max_rec_bits = params.get("max bits received", 1000000)
+        self.max_rec_bits = params.get("max bits received", 10000000)
 
     def set_other_params(self):
         self.random_generator = np.random.RandomState(seed=self.seed)
+        self.metrics["regions"] = []
 
     def set_seed(self, seed):
         self.seed = seed
@@ -103,10 +128,11 @@ class GodotEnvironment:
 
     def step(self, actions_data):
         """
-        sending an action to the godot agent and returns the reward it earned, the new state of the environment and a
-        boolean indicating whether the game is done.
+        sending an action to the godot agent and returns the reward it 
+        earned, the new state of the environment and a boolean indicating 
+        whether the game is done.
         :param action_data: dictionary
-        :return:states_data (dic), rewards_data (dic), done (boolean), n_frames (int)
+        :return: states_data (dic), rewards_data (dic), done (boolean), n_frames (int)
         """
         # prepare and send data to simulation
         request = self._create_request(actions_data=actions_data)
@@ -118,10 +144,17 @@ class GodotEnvironment:
         env_data = self._get_environment_state()
         if self.display_states:
             print(env_data)
-
+        
         # splitting data
         states_data, rewards_data = self._split_env_data(env_data["states_data"])
-        print(rewards_data)
+        #print(rewards_data)
+
+        # Test to plot a metric
+        # TODO: refactor that
+        region_metric = env_data["states_data"][0]["metrics"]["region"]
+        self.metrics["regions"].append(region_metric)
+
+
         n_frames = env_data["n_frames"]
         # scaling reward
         for n_agent in range(len(rewards_data)):
@@ -184,14 +217,18 @@ class GodotEnvironment:
         """
         states_data = None
         is_data_received = False
+        total_data = bytearray()
         # stay in the loop until data is received
         while is_data_received != True:
             # receive data, specifying what max length it can be in bits.
-            states_data = self.client_socket.recv(self.max_rec_bits)
-            states_data = states_data.decode()
+            data_received = self.client_socket.recv(4096)
+            if 4 < len(data_received):
+                total_data += data_received
+                if len(data_received) < 4096:
+                    is_data_received = True
             # checking if the length of the data is enough to be considered valid
-            if len(states_data) > 4:
-                is_data_received = True
+    
+        states_data = total_data.decode()
         return states_data
 
     def _get_environment_state(self):
@@ -226,6 +263,7 @@ class GodotEnvironment:
         if initialization == False and termination == False:
             request["actions_data"] = self._format_actions_data(actions_data)
         request = json.dumps(request).encode()
+
         return request
 
     def _format_actions_data(self, actions_data):
@@ -238,6 +276,7 @@ class GodotEnvironment:
             # convert the actions to the correct type
             if isinstance(actions_data[n_agent]["action"], np.integer):
                 actions_data[n_agent]["action"] = int(actions_data[n_agent]["action"])
+        
         return actions_data
 
     def _format_states_data(self, state_data):
@@ -268,7 +307,11 @@ class GodotEnvironment:
             rewards_data.append(reward_data)
         return states_data, rewards_data
 
+
+
     # simulation functions =============================================
+
+
 
     def _launch_simulation_if_needed(self):
         """If the simulation is not already running, run it with the local godot executable
