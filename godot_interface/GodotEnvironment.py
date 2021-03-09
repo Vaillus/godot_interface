@@ -4,7 +4,7 @@ import numpy as np
 import os
 import subprocess
 import ast
-from utils import get_path
+from .utils import get_path
 
 import struct
 
