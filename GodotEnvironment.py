@@ -4,8 +4,30 @@ import numpy as np
 import os
 import subprocess
 import ast
-import utils
+from .utils import get_path
 
+import struct
+
+
+def recv_msg(sock):
+    # Read message length and unpack it into an integer
+    raw_msglen = recvall(sock, 4)
+    if not raw_msglen:
+        return None
+        
+    msglen = struct.unpack('>I', raw_msglen)[0]
+    # Read the message data
+    return recvall(sock, msglen)
+
+def recvall(sock, n):
+    # Helper function to recv n bytes or return None if EOF is hit
+    data = bytearray()
+    while len(data) < n:
+        packet = sock.recv(n - len(data))
+        if not packet:
+            return None
+        data.extend(packet)
+    return data
 
 class GodotEnvironment:
     def __init__(self, params={}):
@@ -33,6 +55,10 @@ class GodotEnvironment:
         self.seed = None
         self.random_generator = None
 
+        self.max_rec_bits = None
+
+        self.metrics = {}
+
         self.set_params_from_dict(params)
 
         self.set_other_params()
@@ -49,11 +75,18 @@ class GodotEnvironment:
         self.display_states = params.get("display states", False)
         self.verbose = params.get('verbose', False)
         self.seed = params.get('seed', np.random.randint(0, 1e5))
+        # 12.5 kB
+        self.max_rec_bits = params.get("max bits received", 10000000)
 
     def set_other_params(self):
         self.random_generator = np.random.RandomState(seed=self.seed)
+        self.metrics["regions"] = []
 
-    # main functions ===================================================================================================
+    def set_seed(self, seed):
+        self.seed = seed
+        self.random_generator = np.random.RandomState(seed=seed)
+
+    # main functions ===================================================
 
     def reset(self, render):
         """
@@ -88,20 +121,21 @@ class GodotEnvironment:
         env_data = self._get_environment_state()
         if self.display_states:
             print(env_data)
-        states_data = env_data["agents_data"]
+        states_data = env_data["states_data"]
         #states_data = self.scale_states_data(states_data)
 
         return states_data
 
     def step(self, actions_data):
         """
-        sending an action to the godot agent and returns the reward it earned, the new state of the environment and a
-        boolean indicating whether the game is done.
+        sending an action to the godot agent and returns the reward it 
+        earned, the new state of the environment and a boolean indicating 
+        whether the game is done.
         :param action_data: dictionary
-        :return:states_data (dic), rewards_data (dic), done (boolean), n_frames (int)
+        :return: states_data (dic), rewards_data (dic), done (boolean), n_frames (int)
         """
         # prepare and send data to simulation
-        request = self._create_request(agents_data=actions_data)
+        request = self._create_request(actions_data=actions_data)
         if self.display_actions:
             print(request)
         self.client_socket.sendall(request)
@@ -110,9 +144,16 @@ class GodotEnvironment:
         env_data = self._get_environment_state()
         if self.display_states:
             print(env_data)
-
+        
         # splitting data
-        states_data, rewards_data = self._split_env_data(env_data["agents_data"])
+        states_data, rewards_data = self._split_env_data(env_data["states_data"])
+        #print(rewards_data)
+
+        # Test to plot a metric
+        # TODO: refactor that
+        region_metric = env_data["states_data"][0]["metrics"]["region"]
+        self.metrics["regions"].append(region_metric)
+
 
         n_frames = env_data["n_frames"]
         # scaling reward
@@ -143,8 +184,8 @@ class GodotEnvironment:
         self.godot_process.wait()
         self.is_godot_launched = False
 
-    # Connection functions =============================================================================================
-    # ===== sockets        =========================================================================================
+    # Connection functions =============================================
+    # ==== sockets         =============================================
 
     def _initialize_socket(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -167,7 +208,7 @@ class GodotEnvironment:
         self.socket = None
         self.client_socket = None
     
-    # ===== post/pre-sockets =======================================================================
+    # ===== post/pre-sockets ===========================================
 
     def _wait_and_receive_states_data(self):
         """
@@ -176,13 +217,18 @@ class GodotEnvironment:
         """
         states_data = None
         is_data_received = False
+        total_data = bytearray()
         # stay in the loop until data is received
         while is_data_received != True:
-            states_data = self.client_socket.recv(10000)
-            states_data = states_data.decode()
+            # receive data, specifying what max length it can be in bits.
+            data_received = self.client_socket.recv(4096)
+            if 4 < len(data_received):
+                total_data += data_received
+                if len(data_received) < 4096:
+                    is_data_received = True
             # checking if the length of the data is enough to be considered valid
-            if len(states_data) > 4:
-                is_data_received = True
+    
+        states_data = total_data.decode()
         return states_data
 
     def _get_environment_state(self):
@@ -194,39 +240,44 @@ class GodotEnvironment:
         states_data = self._format_states_data(states_data)
         return states_data
 
-    # data formatting =================================================================
+    # data formatting ==================================================
 
-    def _create_request(self, initialization=False, termination=False, agents_data=None):
+    def _create_request(self, initialization=False, termination=False, actions_data=None):
         """
         Handles the type of request to be sent and shape the request into the correct form.
         :param initialization: boolean, indicates if the request must be in the form of an initialization request.
         :param termination: boolean, indicates if the request must be in the form of an termination request.
-        :param agents_data: list of dictionaries contaning the fields "name" (string) and "action" (int) the value of
+        :param actions_data: list of dictionaries contaning the fields "name" (string) and "action" (int) the value of
         the action to be taken by the actor.
         :return: The request is a dictionary stored into a string, ready to be sent to the simulator
         """
         request = {}
         request["initialization"] = initialization
+        # we send a different seed each time so all episodes are not all
+        # the same. but the random seed generator was initialized with the
+        # instance's seed
         if initialization:
             request["seed"] = self.random_generator.randint(low=0, high=1e6)
         request["termination"] = termination
         request["render"] = self.is_rendering
         if initialization == False and termination == False:
-            request["agents_data"] = self._format_actions_data(agents_data)
+            request["actions_data"] = self._format_actions_data(actions_data)
         request = json.dumps(request).encode()
+
         return request
 
-    def _format_actions_data(self, agents_data):
+    def _format_actions_data(self, actions_data):
         """
         formats agents data to the correct shape
-        :param agents_data: list of dictionaries
+        :param actions_data: list of dictionaries
         :return: list of dictionaries
         """
-        for n_agent in range(len(agents_data)):
+        for n_agent in range(len(actions_data)):
             # convert the actions to the correct type
-            if isinstance(agents_data[n_agent]["action"], np.integer):
-                agents_data[n_agent]["action"] = int(agents_data[n_agent]["action"])
-        return agents_data
+            if isinstance(actions_data[n_agent]["action"], np.integer):
+                actions_data[n_agent]["action"] = int(actions_data[n_agent]["action"])
+        
+        return actions_data
 
     def _format_states_data(self, state_data):
         """
@@ -235,35 +286,39 @@ class GodotEnvironment:
         :return: list of dictionaries
         """
         state_data = json.loads(state_data)
-        for n_agent, agent_data in enumerate(state_data["agents_data"]):
+        for n_agent, agent_data in enumerate(state_data["states_data"]):
             if isinstance(agent_data['state'], str):
-                state_data["agents_data"][n_agent]["state"] = ast.literal_eval(agent_data["state"])
+                state_data["states_data"][n_agent]["state"] = ast.literal_eval(agent_data["state"])
         return state_data
 
-    def _split_env_data(self, agents_data):
+    def _split_env_data(self, env_data):
         """
         Split the data received by the environment in two lists. One containing rewards and the other containing the
         states
-        :param agents_data: list of directories
+        :param states_data: list of directories
         :return: two lists of directories
         """
         states_data = []
         rewards_data = []
-        for agent_data in agents_data:
-            state_data = {"name": agent_data["name"], "state": agent_data["state"]}
+        for env_datum in env_data:
+            state_data = {"name": env_datum["name"], "state": env_datum["state"]}
             states_data.append(state_data)
-            reward_data = {"name": agent_data["name"], "reward": agent_data["reward"]}
+            reward_data = {"name": env_datum["name"], "reward": env_datum["reward"]}
             rewards_data.append(reward_data)
         return states_data, rewards_data
 
-    # simulation functions ==================================================================================================
+
+
+    # simulation functions =============================================
+
+
 
     def _launch_simulation_if_needed(self):
         """If the simulation is not already running, run it with the local godot executable
         """
         if not self.is_godot_launched:
-            self.godot_path_str = utils.get_path(self.godot_path_str, add_absolute=True)
-            self.env_path_str = utils.get_path(self.env_path_str) 
+            self.godot_path_str = get_path(self.godot_path_str, add_absolute=True)
+            self.env_path_str = get_path(self.env_path_str) 
             print(f"environment path: {self.env_path_str}")
             print(f"godot path: {self.godot_path_str}")
             command = "{} --main-pack {}".format(self.godot_path_str, self.env_path_str)
@@ -287,7 +342,7 @@ class GodotEnvironment:
             self.close()
         self.is_rendering = render
 
-    # other ===========================================================================================
+    # other ============================================================
 
     def scale_states_data(self, states_data):
         """
@@ -305,4 +360,3 @@ class GodotEnvironment:
         """ Scale a single state (np array)"""
         scaled_state = (state - self.state_min) / (self.state_max - self.state_min)
         return scaled_state
-
