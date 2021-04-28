@@ -154,7 +154,8 @@ class GodotEnvironment:
         # TODO: refactor that
         metrics_data = env_data["states_data"][0]["metrics"]
         self.metrics["regions"].append(metrics_data["region"])
-        self.metrics["misc"].append(metrics_data["misc"])
+        if metrics_data["misc"]:
+            self.metrics["misc"].append(metrics_data["misc"])
 
 
         n_frames = env_data["n_frames"]
