@@ -81,6 +81,7 @@ class GodotEnvironment:
     def set_other_params(self):
         self.random_generator = np.random.RandomState(seed=self.seed)
         self.metrics["regions"] = []
+        self.metrics["misc"] = []
 
     def set_seed(self, seed):
         self.seed = seed
@@ -151,8 +152,9 @@ class GodotEnvironment:
 
         # Test to plot a metric
         # TODO: refactor that
-        region_metric = env_data["states_data"][0]["metrics"]["region"]
-        self.metrics["regions"].append(region_metric)
+        metrics_data = env_data["states_data"][0]["metrics"]
+        self.metrics["regions"].append(metrics_data["region"])
+        self.metrics["misc"].append(metrics_data["misc"])
 
 
         n_frames = env_data["n_frames"]
