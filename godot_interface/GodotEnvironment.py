@@ -34,12 +34,11 @@ class GodotEnvironment:
 
         self.host = None
         self.port = None
+        self.socket = None
+        self.client_socket = None
 
         self.godot_path_str = None
         self.env_path_str = None
-
-        self.socket = None
-        self.client_socket = None
 
         self.godot_process = None
         self.is_godot_launched = False
@@ -89,7 +88,7 @@ class GodotEnvironment:
 
     # main functions ===================================================
 
-    def reset(self, render):
+    def reset(self, render: bool):
         """
         Initialize the environment and returns its first state.
         To do so, it:
