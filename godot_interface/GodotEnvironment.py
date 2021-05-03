@@ -123,6 +123,7 @@ class GodotEnvironment:
             print(env_data)
         states_data = env_data["states_data"]
 
+        self.metrics = {}
         self.metrics["regions"] = []
         self.metrics["misc"] = []
         #states_data = self.scale_states_data(states_data)
