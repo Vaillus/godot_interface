@@ -66,7 +66,7 @@ class GodotEnvironment:
         self.host = params.get("host", '127.0.0.1')
         self.port = params.get("port", 4242)
         env_name = params.get("environment name", "")
-        self.env_path_strget_godot_package_path(env_name)
+        self.env_path_str = get_godot_package_path(env_name)
         self.agent_names = params.get("agent names", [])
         self.state_min = np.array(params.get("state min", [0, 0]))
         self.state_max = np.array(params.get("state min", [1000, 1000]))
