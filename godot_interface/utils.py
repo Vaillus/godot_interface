@@ -12,3 +12,49 @@ def get_path(string_path, add_absolute=False):
     else:
         modified_string_path = os.path.join(*string_path.split("/"))
     return modified_string_path
+
+def get_username() -> str:
+    username = os.path.expanduser("~").split("/")[-1]
+    return username
+
+def get_godot_path() -> str:
+    """specific to my personal use.
+    I made it so I can run Godot from python on any of my computers.
+
+    Returns:
+        str: godot path
+    """
+    start_path = "mnt/c/Users/"
+    username = get_username()
+    end_path = "Desktop/Godot_v3.2.3-stable_win64.exe"
+    list_path = start_path.split("/") + [username] + end_path.split("/")
+    godot_path = os.path.join(*list_path)
+    return godot_path
+
+def get_godot_package_path(package_name: str) -> str:
+    """specific to my personal use.
+    I made it so I can run Godot packages from python on any of my computers.
+
+    Args:
+        package_name (str): name of the package, with or without extension
+
+    Returns:
+        str: [description]
+    """
+    package_name = add_extension(package_name, "pck")
+    start_path = "C:/Users"
+    username = get_username()
+    mid_path = "Documents/work/projects"
+    total_path_list = start_path.split("/") + [username] + mid_path.split("/") + [package_name]
+    total_path = os.path.join(*total_path_list)
+    return total_path
+
+def add_extension(  file_name: str,
+                    extension: str) -> str:
+    """add extension to filename if not already there.
+    """
+    file_name, file_extension = os.path.splitext(file_name)
+    if file_extension == "":
+        extension = extension
+    file_name += "." + extension
+    return file_name
