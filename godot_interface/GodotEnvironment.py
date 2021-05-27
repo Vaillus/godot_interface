@@ -4,7 +4,7 @@ import numpy as np
 import os
 import subprocess
 import ast
-from .utils import get_path
+from .utils import get_path, get_godot_path, get_godot_package_path
 
 import struct
 
@@ -65,8 +65,8 @@ class GodotEnvironment:
     def set_params_from_dict(self, params={}):
         self.host = params.get("host", '127.0.0.1')
         self.port = params.get("port", 4242)
-        self.godot_path_str = params.get("godot path", "")
-        self.env_path_str = params.get("environment path", "")
+        env_name = params.get("environment name", "")
+        self.env_path_strget_godot_package_path(env_name)
         self.agent_names = params.get("agent names", [])
         self.state_min = np.array(params.get("state min", [0, 0]))
         self.state_max = np.array(params.get("state min", [1000, 1000]))
@@ -81,6 +81,7 @@ class GodotEnvironment:
         self.random_generator = np.random.RandomState(seed=self.seed)
         self.metrics["regions"] = []
         self.metrics["misc"] = []
+        self.godot_path_str = get_godot_path()
 
     def set_seed(self, seed):
         self.seed = seed
