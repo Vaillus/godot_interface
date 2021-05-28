@@ -14,7 +14,12 @@ def get_path(string_path, add_absolute=False):
     return modified_string_path
 
 def get_username() -> str:
-    username = os.path.expanduser("~").split("/")[-1]
+    # username = os.path.expanduser("~").split("/")[-1]
+    users = os.listdir("/mnt/c/Users")
+    if "vaill" in users:
+        username = "vaill"
+    elif "Hugo" in users:
+        username = "Hugo"
     return username
 
 def get_godot_path() -> str:
@@ -58,3 +63,7 @@ def add_extension(  file_name: str,
         extension = extension
     file_name += "." + extension
     return file_name
+
+    
+
+
