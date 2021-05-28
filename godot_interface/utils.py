@@ -49,7 +49,7 @@ def get_godot_package_path(package_name: str) -> str:
     package_name = add_extension(package_name, "pck")
     start_path = "C:/Users"
     username = get_username()
-    mid_path = "Documents/work/projects"
+    mid_path = "Documents/work/projects/flight_simulator/"
     total_path_list = start_path.split("/") + [username] + mid_path.split("/") + [package_name]
     total_path = os.path.join(*total_path_list)
     return total_path
@@ -63,7 +63,3 @@ def add_extension(  file_name: str,
         extension = extension
     file_name += "." + extension
     return file_name
-
-    
-
-
