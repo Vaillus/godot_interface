@@ -32,6 +32,9 @@ def get_godot_path() -> str:
     """
     start_path = "mnt/c/Users/"
     username = get_username()
+    if username == "vaill":
+        path = "\mnt\c\Program Files (x86)\Steam\steamapps\common\Godot Engine\godot.windows.opt.tools.64"
+        return path
     end_path = "Desktop"#/Godot_v3.2.3-stable_win64.exe"
     desktop_path = start_path.split("/") + [username] + end_path.split("/")
     godot_file = find_godot(desktop_path)
