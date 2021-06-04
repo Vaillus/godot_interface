@@ -324,7 +324,7 @@ class GodotEnvironment:
         """If the simulation is not already running, run it with the local godot executable
         """
         if not self.is_godot_launched:
-            self.godot_path_str = get_path(self.godot_path_str, add_absolute=True)
+            self.godot_path_str = get_path(self.godot_path_str, add_absolute=False)
             self.env_path_str = get_path(self.env_path_str) 
             print(f"environment path: {self.env_path_str}")
             print(f"godot path: {self.godot_path_str}")
