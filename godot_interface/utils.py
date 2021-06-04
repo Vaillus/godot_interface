@@ -43,7 +43,7 @@ def find_godot(path: list) -> str:
     desktop_files = os.listdir(os.sep+os.path.join(*path))
     godot_file = ""
     for file_name in desktop_files:
-        if re.match(r"Godot.*", file_name.lower()):
+        if re.match(r"godot.*", file_name.lower()):
             godot_file = file_name
     assert godot_file != "", f"There is no godot file in {os.sep+os.path.join(*path)}"
     return godot_file
