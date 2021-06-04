@@ -1,4 +1,5 @@
 import os
+import re
 
 def get_path(string_path, add_absolute=False):
     """ fromats the path to a format that is correct to python. Can also add its absolute path prefix.
@@ -31,10 +32,23 @@ def get_godot_path() -> str:
     """
     start_path = "mnt/c/Users/"
     username = get_username()
-    end_path = "Desktop/Godot_v3.2.3-stable_win64.exe"
-    list_path = start_path.split("/") + [username] + end_path.split("/")
+    end_path = "Desktop"#/Godot_v3.2.3-stable_win64.exe"
+    desktop_path = start_path.split("/") + [username] + end_path.split("/")
+    godot_file = find_godot(desktop_path)
+    list_path = desktop_path + [godot_file]
     godot_path = os.path.join(*list_path)
     return godot_path
+
+def find_godot(path: list) -> str:
+    desktop_files = os.listdir(os.sep+os.path.join(*path))
+    godot_file = ""
+    for file_name in desktop_files:
+        print(file_name)
+        if re.match(r"Godot.*", file_name):
+            godot_file = file_name
+    assert godot_file != "", f"There is no godot file in {os.sep+os.path.join(*path)}"
+    return godot_file
+
 
 def get_godot_package_path(package_name: str) -> str:
     """specific to my personal use.
