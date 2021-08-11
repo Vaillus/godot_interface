@@ -45,7 +45,6 @@ class GodotEnvironment:
         seed: Optional[int] = np.random.randint(0, 1e5),
         max_rec_bits: Optional[int] = 10000000
     ):
-
         self.host = host
         self.port = port
         self.socket = None
