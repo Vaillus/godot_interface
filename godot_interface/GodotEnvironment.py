@@ -5,6 +5,7 @@ import os
 import subprocess
 import ast
 from .utils import get_path, get_godot_path, get_godot_package_path
+from typing import Optional, List
 
 import struct
 
@@ -30,58 +31,49 @@ def recvall(sock, n):
     return data
 
 class GodotEnvironment:
-    def __init__(self, params={}):
+    def __init__(
+        self, 
+        host: Optional[str] = '127.0.0.1',
+        port: Optional[int] = 4242,
+        env_name : Optional[str] = "", 
+        agent_names : Optional[List[str]] = [],
+        state_min : Optional[List[int]] = [0, 0],
+        state_max : Optional[List[int]] = [1000, 1000],
+        display_actions : Optional[bool] = False,
+        display_states : Optional[bool] = False,
+        verbose : Optional[bool] = False,
+        seed: Optional[int] = np.random.randint(0, 1e5),
+        max_rec_bits: Optional[int] = 10000000
+    ):
 
-        self.host = None
-        self.port = None
+        self.host = host
+        self.port = port
         self.socket = None
         self.client_socket = None
 
-        self.godot_path_str = None
-        self.env_path_str = None
+        self.godot_path_str = get_godot_path()
+        self.env_path_str = get_godot_package_path(env_name)
 
         self.godot_process = None
         self.is_godot_launched = False
         self.is_rendering = True
 
-        self.agent_names = None
-        self.state_min = None
-        self.state_max = None
+        self.agent_names = agent_names
+        self.state_min = state_min
+        self.state_max = state_max
 
-        self.display_actions = None
-        self.display_states = None
-        self.verbose = None
-        self.seed = None
-        self.random_generator = None
-
-        self.max_rec_bits = None
-
-        self.metrics = {}
-
-        self.set_params_from_dict(params)
-
-        self.set_other_params()
-
-    def set_params_from_dict(self, params={}):
-        self.host = params.get("host", '127.0.0.1')
-        self.port = params.get("port", 4242)
-        env_name = params.get("environment name", "")
-        self.env_path_str = get_godot_package_path(env_name)
-        self.agent_names = params.get("agent names", [])
-        self.state_min = np.array(params.get("state min", [0, 0]))
-        self.state_max = np.array(params.get("state min", [1000, 1000]))
-        self.display_actions = params.get("display actions", False)
-        self.display_states = params.get("display states", False)
-        self.verbose = params.get('verbose', False)
-        self.seed = params.get('seed', np.random.randint(0, 1e5))
-        # 12.5 kB
-        self.max_rec_bits = params.get("max bits received", 10000000)
-
-    def set_other_params(self):
+        self.display_actions = display_actions
+        self.display_states = display_states
+        self.verbose = verbose
+        self.seed = seed
         self.random_generator = np.random.RandomState(seed=self.seed)
-        self.metrics["regions"] = []
-        self.metrics["misc"] = []
-        self.godot_path_str = get_godot_path()
+
+        self.max_rec_bits = max_rec_bits
+
+        self.metrics = {
+            "regions": [], 
+            "misc": []
+        }
 
     def set_seed(self, seed):
         self.seed = seed
