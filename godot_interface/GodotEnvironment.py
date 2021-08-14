@@ -98,13 +98,15 @@ class GodotEnvironment:
 
         # Initializing a subprocess where a godot instance is launched, if it doesn't exist yet.
         self._launch_simulation_if_needed()
+        print("the simulation  should be launched")
 
         # Initializing the socket if it's not already done.
         if self.socket is None:
             self._initialize_socket()
             # Creating the connexion with the simulator
             self._wait_for_connection()
-
+        
+        print("connection should be established")
         # Send the first request to get the initial state of the simulation
         first_request = self._create_request(initialization=True)
         self.client_socket.sendall(first_request)
