@@ -4,7 +4,7 @@ import numpy as np
 import os
 import subprocess
 import ast
-from .utils import get_path, get_godot_path, get_godot_package_path
+from utils import get_path, get_godot_path, get_godot_package_path
 from typing import Optional, List
 
 import struct
@@ -358,3 +358,15 @@ class GodotEnvironment:
         """ Scale a single state (np array)"""
         scaled_state = (state - self.state_min) / (self.state_max - self.state_min)
         return scaled_state
+
+if __name__ == "__main__":
+    port = 4243
+    env_params = {
+        "agent_names": ["Plane"],
+        "port": port,
+        "env_name": "simonin_0_2",
+        "verbose": True
+    }
+    env = GodotEnvironment(**env_params)
+    regions = np.array(env.reset(render=True)[0]["state"]["regions"])
+    env.close()
