@@ -98,7 +98,6 @@ class GodotEnvironment:
 
         # Initializing a subprocess where a godot instance is launched, if it doesn't exist yet.
         self._launch_simulation_if_needed()
-        print("the simulation  should be launched")
 
         # Initializing the socket if it's not already done.
         if self.socket is None:
@@ -106,7 +105,6 @@ class GodotEnvironment:
             # Creating the connexion with the simulator
             self._wait_for_connection()
         
-        print("connection should be established")
         # Send the first request to get the initial state of the simulation
         first_request = self._create_request(initialization=True)
         self.client_socket.sendall(first_request)
@@ -317,8 +315,8 @@ class GodotEnvironment:
         """If the simulation is not already running, run it with the local godot executable
         """
         if not self.is_godot_launched:
-            #self.godot_path_str = get_path(self.godot_path_str, add_absolute=False)
-            #self.env_path_str = get_path(self.env_path_str) 
+            # self.godot_path_str = get_path(self.godot_path_str, add_absolute=False)
+            # self.env_path_str = get_path(self.env_path_str) 
             print(f"environment path: {self.env_path_str}")
             print(f"godot path: {self.godot_path_str}")
             command = "{} --main-pack {}".format(self.godot_path_str, self.env_path_str)

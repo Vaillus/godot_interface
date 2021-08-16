@@ -30,8 +30,8 @@ def get_godot_path() -> str:
     Returns:
         str: godot path
     """
-    start_path = "mnt/c/Users/"
-    username = get_username()
+    #start_path = "mnt/c/Users/"
+    #username = get_username()
     #if username == "vaill":
     path = '"/mnt/c/Program Files (x86)/Steam/steamapps/common/Godot Engine/godot.windows.opt.tools.64.exe"'
     return path
