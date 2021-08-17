@@ -4,7 +4,7 @@ import numpy as np
 import os
 import subprocess
 import ast
-from utils import get_path, get_godot_path, get_godot_package_path
+from .utils import get_path, get_godot_path, get_godot_package_path
 from typing import Optional, List
 
 import struct
