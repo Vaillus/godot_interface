@@ -369,4 +369,4 @@ if __name__ == "__main__":
     }
     env = GodotEnvironment(**env_params)
     regions = np.array(env.reset(render=True)[0]["state"]["regions"])
-    env.close()
+    env.close() 
