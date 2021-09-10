@@ -118,6 +118,7 @@ class GodotEnvironment:
         self.metrics = {}
         self.metrics["regions"] = []
         self.metrics["misc"] = []
+        self.metrics["search_score"] = []
         #states_data = self.scale_states_data(states_data)
 
         return states_data
@@ -151,7 +152,8 @@ class GodotEnvironment:
         self.metrics["regions"].append(metrics_data["region"])
         if metrics_data["misc"]:
             self.metrics["misc"].append(metrics_data["misc"])
-        self.metrics["search_score"].append(metrics_data["search_score"])
+        if metrics_data["search_score"]:
+            self.metrics["search_score"].append(metrics_data["search_score"])
 
 
         n_frames = env_data["n_frames"]
