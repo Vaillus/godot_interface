@@ -144,7 +144,6 @@ class GodotEnvironment:
         
         # splitting data
         states_data, rewards_data = self._split_env_data(env_data["states_data"])
-        print(states_data)
 
         # Test to plot a metric
         # TODO: refactor that
@@ -320,8 +319,9 @@ class GodotEnvironment:
         if not self.is_godot_launched:
             # self.godot_path_str = get_path(self.godot_path_str, add_absolute=False)
             # self.env_path_str = get_path(self.env_path_str) 
-            print(f"environment path: {self.env_path_str}")
-            print(f"godot path: {self.godot_path_str}")
+            if self.verbose:
+                print(f"environment path: {self.env_path_str}")
+                print(f"godot path: {self.godot_path_str}")
             command = "{} --main-pack {}".format(self.godot_path_str, self.env_path_str)
             if not self.is_rendering:
                 command = command + " --disable-render-loop --no-window"
