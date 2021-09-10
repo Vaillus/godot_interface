@@ -143,7 +143,7 @@ class GodotEnvironment:
         
         # splitting data
         states_data, rewards_data = self._split_env_data(env_data["states_data"])
-        #print(rewards_data)
+        print(states_data)
 
         # Test to plot a metric
         # TODO: refactor that
@@ -151,6 +151,7 @@ class GodotEnvironment:
         self.metrics["regions"].append(metrics_data["region"])
         if metrics_data["misc"]:
             self.metrics["misc"].append(metrics_data["misc"])
+        self.metrics["search_score"].append(metrics_data["search_score"])
 
 
         n_frames = env_data["n_frames"]
