@@ -149,9 +149,9 @@ class GodotEnvironment:
         # TODO: refactor that
         metrics_data = env_data["states_data"][0]["metrics"]
         self.metrics["regions"].append(metrics_data["region"])
-        if metrics_data["misc"]:
+        if "misc" in metrics_data:
             self.metrics["misc"].append(metrics_data["misc"])
-        if metrics_data["search_score"]:
+        if "search_score" in metrics_data:
             self.metrics["search_score"].append(metrics_data["search_score"])
 
 
