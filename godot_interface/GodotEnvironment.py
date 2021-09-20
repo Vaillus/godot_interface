@@ -5,7 +5,7 @@ import os
 import subprocess
 import ast
 from .utils import get_path, get_godot_path, get_godot_package_path
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
 import struct
 
@@ -80,7 +80,11 @@ class GodotEnvironment:
 
     # main functions ===================================================
 
-    def reset(self, render: bool):
+    def reset(
+        self, 
+        render: bool, 
+        seed: Optional[int] = None
+    ):
         """
         Initialize the environment and returns its first state.
         To do so, it:
@@ -106,7 +110,7 @@ class GodotEnvironment:
             self._wait_for_connection()
         
         # Send the first request to get the initial state of the simulation
-        first_request = self._create_request(initialization=True)
+        first_request = self._create_request(initialization=True, seed=seed)
         self.client_socket.sendall(first_request)
 
         # Get the first state of the simulation, scale it and return it
@@ -242,7 +246,13 @@ class GodotEnvironment:
 
     # data formatting ==================================================
 
-    def _create_request(self, initialization=False, termination=False, actions_data=None):
+    def _create_request(
+        self, 
+        initialization: bool = False, 
+        termination: bool = False, 
+        actions_data: Optional[Dict[str, Any]] = None,
+        seed: Optional[int] = None
+    ):
         """
         Handles the type of request to be sent and shape the request into the correct form.
         :param initialization: boolean, indicates if the request must be in the form of an initialization request.
@@ -257,7 +267,10 @@ class GodotEnvironment:
         # the same. but the random seed generator was initialized with the
         # instance's seed
         if initialization:
-            request["seed"] = self.random_generator.randint(low=0, high=1e6)
+            if seed is None:
+                request["seed"] = self.random_generator.randint(low=0, high=1e6)
+            else:
+                request["seed"] = seed
         request["termination"] = termination
         request["render"] = self.is_rendering
         if initialization == False and termination == False:
