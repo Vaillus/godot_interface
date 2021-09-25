@@ -105,6 +105,7 @@ class GodotEnvironment:
 
         # Initializing the socket if it's not already done.
         if self.socket is None:
+            
             self._initialize_socket()
             # Creating the connexion with the simulator
             self._wait_for_connection()
