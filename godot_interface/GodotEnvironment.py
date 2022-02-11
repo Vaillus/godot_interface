@@ -78,13 +78,18 @@ class GodotEnvironment:
         self.seed = seed
         self.random_generator = np.random.RandomState(seed=seed)
 
-    # main functions ===================================================
+
+
+    # === main functions ===============================================
+
+
 
     def reset(
         self, 
         render: bool, 
-        seed: Optional[int] = None
-    ):
+        seed: Optional[int] = None,
+        params: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         """
         Initialize the environment and returns its first state.
         To do so, it:
@@ -111,7 +116,7 @@ class GodotEnvironment:
             self._wait_for_connection()
         
         # Send the first request to get the initial state of the simulation
-        first_request = self._create_request(initialization=True, seed=seed)
+        first_request = self._create_request(initialization=True, seed=seed, params=params)
         self.client_socket.sendall(first_request)
 
         # Get the first state of the simulation, scale it and return it
@@ -189,8 +194,12 @@ class GodotEnvironment:
         self.godot_process.wait()
         self.is_godot_launched = False
 
-    # Connection functions =============================================
+
+
+    # === Connection functions =========================================
     # ==== sockets         =============================================
+
+
 
     def _initialize_socket(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -213,7 +222,11 @@ class GodotEnvironment:
         self.socket = None
         self.client_socket = None
     
+
+
     # ===== post/pre-sockets ===========================================
+
+
 
     def _wait_and_receive_states_data(self):
         """
@@ -227,11 +240,13 @@ class GodotEnvironment:
         while is_data_received != True:
             # receive data, specifying what max length it can be in bits.
             data_received = self.client_socket.recv(4096)
+            # checking if the length of the data is enough to be 
+            # considered valid
             if 4 < len(data_received):
                 total_data += data_received
                 if len(data_received) < 4096:
                     is_data_received = True
-            # checking if the length of the data is enough to be considered valid
+            
     
         states_data = total_data.decode()
         return states_data
@@ -245,22 +260,35 @@ class GodotEnvironment:
         states_data = self._format_states_data(states_data)
         return states_data
 
-    # data formatting ==================================================
+
+
+    # === data formatting ===============================================
+
+
 
     def _create_request(
         self, 
         initialization: bool = False, 
         termination: bool = False, 
         actions_data: Optional[Dict[str, Any]] = None,
-        seed: Optional[int] = None
-    ):
+        seed: Optional[int] = None,
+        params: Optional[Dict[str, Any]] = None
+    ) -> bytes:
         """
-        Handles the type of request to be sent and shape the request into the correct form.
-        :param initialization: boolean, indicates if the request must be in the form of an initialization request.
-        :param termination: boolean, indicates if the request must be in the form of an termination request.
-        :param actions_data: list of dictionaries contaning the fields "name" (string) and "action" (int) the value of
+        Handles the type of request to be sent and shape the request into 
+        the correct form.
+        :param initialization: boolean, indicates if the request must be 
+        in the form of an initialization request.
+        :param termination: boolean, indicates if the request must be in 
+        the form of an termination request.
+        :param actions_data: list of dictionaries contaning the fields 
+        "name" (string) and "action" (int) the value of
         the action to be taken by the actor.
-        :return: The request is a dictionary stored into a string, ready to be sent to the simulator
+        :param params: to be used for reinitialization only. Contains 
+        eventual parameters to be sent to the simulation for its 
+        reinitialization.
+        :return: The request is a dictionary stored into a string encoded 
+        into bytes, ready to be sent to the simulator
         """
         request = {}
         request["initialization"] = initialization
@@ -272,12 +300,15 @@ class GodotEnvironment:
                 request["seed"] = self.random_generator.randint(low=0, high=1e6)
             else:
                 request["seed"] = seed
+            # add params if they are provided
+            if params is not None:
+                request["params"] = params
         request["termination"] = termination
         request["render"] = self.is_rendering
         if initialization == False and termination == False:
             request["actions_data"] = self._format_actions_data(actions_data)
+        # convert the dictionary to a string, then bytes
         request = json.dumps(request).encode()
-
         return request
 
     def _format_actions_data(self, actions_data):
@@ -307,8 +338,8 @@ class GodotEnvironment:
 
     def _split_env_data(self, env_data):
         """
-        Split the data received by the environment in two lists. One containing rewards and the other containing the
-        states
+        Split the data received by the environment in two lists. One 
+        containing rewards and the other containing the states
         :param states_data: list of directories
         :return: two lists of directories
         """
@@ -323,12 +354,13 @@ class GodotEnvironment:
 
 
 
-    # simulation functions =============================================
+    # === simulation functions =========================================
 
 
 
     def _launch_simulation_if_needed(self):
-        """If the simulation is not already running, run it with the local godot executable
+        """If the simulation is not already running, run it with the 
+        local godot executable.
         """
         if not self.is_godot_launched:
             # self.godot_path_str = get_path(self.godot_path_str, add_absolute=False)
@@ -357,7 +389,11 @@ class GodotEnvironment:
             self.close()
         self.is_rendering = render
 
-    # other ============================================================
+
+
+    # === other ========================================================
+
+
 
     def scale_states_data(self, states_data):
         """
