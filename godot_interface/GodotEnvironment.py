@@ -242,10 +242,11 @@ class GodotEnvironment:
             data_received = self.client_socket.recv(4096)
             # checking if the length of the data is enough to be 
             # considered valid
-            if 4 < len(data_received):
-                total_data += data_received
-                if len(data_received) < 4096:
-                    is_data_received = True
+
+            #if 4 < len(data_received):
+            total_data += data_received
+            if len(data_received) < 4096:
+                is_data_received = True
             
     
         states_data = total_data.decode()
