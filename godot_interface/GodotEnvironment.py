@@ -237,19 +237,23 @@ class GodotEnvironment:
         :return: list of dictionaries
         """
         states_data = None
-        is_data_received = False
         total_data = bytearray()
         # stay in the loop until data is received
-        while is_data_received != True:
+        while True:
             # receive data, specifying what max length it can be in bits.
             data_received = self.client_socket.recv(4096)
             # checking if the length of the data is enough to be 
             # considered valid
-
             #if 4 < len(data_received):
             total_data += data_received
-            if len(data_received) < 4096:
-                is_data_received = True
+            try:
+                json.loads(total_data.decode())
+            except:
+                continue
+            else: 
+                break
+            #if len(data_received) < 4096:
+            #    is_data_received = True
             
     
         states_data = total_data.decode()
