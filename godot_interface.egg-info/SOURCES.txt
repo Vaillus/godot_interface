@@ -1,0 +1,9 @@
+setup.py
+godot_interface/__init__.py
+godot_interface/godot_environment.py
+godot_interface/utils.py
+godot_interface.egg-info/PKG-INFO
+godot_interface.egg-info/SOURCES.txt
+godot_interface.egg-info/dependency_links.txt
+godot_interface.egg-info/not-zip-safe
+godot_interface.egg-info/top_level.txt

@@ -1,0 +1,8 @@
+Metadata-Version: 2.1
+Name: godot-interface
+Version: 0.1
+Summary: interface to Godot environments for reinforcement learning applications
+Home-page: #
+Author: vaillus
+Author-email: hugovaillaud@gmail.com
+License: MIT
